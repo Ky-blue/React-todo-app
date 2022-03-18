@@ -1,122 +1,74 @@
 // コンポーネントなどをまとめる
 
-import React, { useState, useEffect } from "react";
+import React, { useRef } from "react";
 
+// useTodo()カスタムフック
+// 状態変数やTODOのトグル、追加、削除などの機能が入っている
+import { useTodo } from "../hooks/useTodo";
 
-import axios from "axios";
-
-// モックサーバーとの通信のため axios を import
-const todoDataUrl = "http://localhost:3100/todos";
-
-// TodoTitle コンポーネントを作成
-// 見出しタグがh1, h2の場合の条件分岐を作成しておく
-// 親コンポーネントから title, as を props として受け取る
-const TodoTitle = ({ title, as }) => {
-
-  // as が h1 ならばタイトルタグは h1
-  if (as === "h1") return <h1>{title}</h1>;
-
-  // as が h2 ならばタイトルタグは h2
-  if (as === "h2") return <h2>{title}</h2>;
-
-  // どちらでも泣ければタグは p
-  return <p>{title}</p>;
-};
-
-// TodoItem コンポ―ネントを作成
-// 親コンポーネントから todo を props として受け取る
-const TodoItem = ({ todo }) => {
-  return (
-    <li>
-
-      {/* TODOの内容 */}
-      {todo.content}
-
-      {/* TODOが完了の場合は「未完了リストへ」、未完了の場合は「完了リストへ」と表示するボタンを設置 */}
-      {/* 現時点でトグルボタンは機能していない */}
-      <button>{todo.done ? "未完了リストへ" : "完了リストへ"}</button>
-
-      {/* TODOの「削除」ボタンを設置 */}
-      {/* 現時点で「削除」ボタンは機能していない */}
-      <button>削除</button>
-    </li>
-  );
-};
-
-// TodoList コンポーネントを作成
-// 親コンポーネントから todoList を props として受け取る
-const TodoList = ({ todoList }) => {
-  return (
-    <ul>
-
-      {/* map() を利用して todoList の内容をひとつひとつ取り出す */}
-      {todoList.map((todo) => (
-
-        // TodoItem に一意なIDを key属性の値として付与
-        // todoList から取り出した todo を子コンポーネントへ propsで渡す
-        <TodoItem todo={todo} key={todo.id} />
-      ))}
-    </ul>
-  );
-};
+// TodoTitle, TodoAdd, TodoList コンポーネントを import 
+// それぞれタイトルやフォーム、表示するリスト
+import { TodoTitle } from "./TodoTitle";
+import { TodoAdd } from "./TodoAdd";
+import { TodoList } from "./TodoList";
 
 function App() {
 
-  // todoList は現在のTODOの状態
-  // setTodoList は現在の todoList の状態を更新するための関数
-  // todoList の初期値には空の配列
-  const [todoList, setTodoList] = useState([]);
+ const {
+    todoList, // TODO の現在の状態
+    addTodoListItem, // 新規のTODOを追加する関数
+    toggleTodoListItemStatus, // done(完了/未完了)を反転させて更新する関数
+    deleteTodoListItem // TODOを削除する関数
+  } = useTodo();
 
-  // useEffect() を利用することでコンポーネントのマウント後に処理を実行
-  // async/await で非同期処理化
-  useEffect(() => {
-    const fetchData = async () => {
+  // useRef で refオブジェクトを作成（TODO入力フォームで利用）
+  const inputEl = useRef(null);
 
-      // get は外部から情報を取得する基本メソッド
-      // get の引数にURLを入れるとURLに対してGETリクエストを送信
-      // リクエスト後に戻ってくる値はすべてresponse に保存される
-      const response = await axios.get(todoDataUrl);
+  // TODO入力フォームで入力された文字列を新しいTODOに登録するための
+  // handleAddTodoListItem関数の宣言
+  const handleAddTodoListItem = () => {
 
-      // 戻された値について useState を利用して
-      // todoList の現在の値としてセットする
-      setTodoList(response.data);
-    };
-    fetchData();
-  },[]);
+    // 何も入力されていない場合はクリックしても何も返さない
+    if (inputEl.current.value === "") return;
+
+    // テキストエリアに乳旅行されたテキストを新規TODOとして追加
+    // 追加したらテキストエリアを空の文字列にする
+    // 「+ TODOを追加」ボタンクリックで addTodoListItem関数を実行
+    addTodoListItem(inputEl.current.value);
+    inputEl.current.value = "";
+  };
 
   // console.log でコンソールに取得したTODOリストの情報を表示してみる
   console.log("TODOリスト:", todoList);
 
   // filter() を利用して「TODOの状態が未完了」の要素を持つ新しい配列を作成
-  const inCompletedList = todoList((todo) => {
+  const inCompletedList = todoList.filter((todo) => {
     return !todo.done;
   });
 
   // filter() を利用して「TODOの状態が完了」の要素を持つ新しい配列を作成
-  const completedList = todoList((todo) => {
+  const completedList = todoList.filter((todo) => {
     return todo.done;
   });
 
   return (
     <>
-
-      {/* h1見出しタグを　TodoTitle コンポーネントに */}
-      {/* 見出しに表示させたいテキストを title に代入して子コンポーネントへ props で渡す */}
       <TodoTitle title="TODO進捗管理" as="h1" />
 
-      {/*現時点で textarea は機能していない */}
-      <textarea />
+      <TodoAdd inputEl={inputEl} handleAddTodoListItem={handleAddTodoListItem} />
 
-      {/* 現時点で「+ TODOを追加」ボタンは機能していない */}
-      <button>+ TODOを追加</button>
-
-      {/* h2見出しタグを TodoTitle コンポーネントに */}
-      {/* 見出しに表示させたいテキストを title に代入して子コンポーネントへ props で渡す */}
       <TodoTitle title="未完了TODOリスト" as="h2" />
 
-      {/* TodoList コンポーネント */}
-      {/* 未完了TODOリスト inCompletedList を todoList に代入して子コンポーネントへ props で渡す */}
-      <TodoList todoList={inCompletedList} />
+      <TodoList todoList={inCompletedList} 
+      
+      //useTodo()カスタムフックの toggleTodoListItemStatus関数を props で渡す
+      // この関数は todoListItem のdoneを反転して更新する
+      toggleTodoListItemStatus={toggleTodoListItemStatus}
+
+      //useTodo()カスタムフックの deleteTodoListItem関数を props で渡す
+      // この関数は各TODOの削除ボタンクリックで実行され、TODOを削除する
+      deleteTodoListItem={deleteTodoListItem}
+      />
 
       {/* h2見出しタグを todoTitle コンポーネントに */}
       {/* 見出しに表示させたいテキストを title に代入して子コンポーネントへ props で渡す */}
@@ -125,8 +77,11 @@ function App() {
 
       {/* TodoList コンポーネント */}
       {/* 完了TODOリスト completedList を todoList へ代入して子コンポーネントへ props で渡す */}
-      <TodoList todoList={completedList} />
-
+      <TodoList todoList={completedList} 
+      // TODOの状態反転関数をpropsで引き渡す
+      toggleTodoListItemStatus={toggleTodoListItemStatus} 
+      // 各種TODOを削除する関数を props で渡す
+      deleteTodoListItem={deleteTodoListItem} />
     </> 
   );
 }
